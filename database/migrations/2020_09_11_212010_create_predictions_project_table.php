@@ -19,8 +19,7 @@ class CreatePredictionsProjectTable extends Migration
             $table->enum('market_type', ['1x2', 'correct_score'])->nullable();
             $table->string('prediction')->nullable();
             $table->enum('status', ['win', 'lost', 'unresolved'])->default('unresolved');
-            $table->timestamp('created_at')->default(DB::raw('CURRENT_TIMESTAMP'));
-            $table->timestamp('updated_at')->default(DB::raw('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')); // TO WORK ON TEST REMOVE  ON UPDATE CURRENT_TIMESTAMP
+            $table->timestamps();
             $table->index('event_id');
         });
     }

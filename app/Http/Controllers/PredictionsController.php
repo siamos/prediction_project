@@ -24,7 +24,7 @@ class PredictionsController extends Controller
 
     public function store(Request $request, Predictions $prediction)
     {
-        $predictionServiceCustomValidation = $this->getPredictionService();
+        $predictionServiceCustomValidation = $this->getValidationService();
         $inputValues                       = $request->all();
 
         $validator = $predictionServiceCustomValidation
@@ -43,35 +43,35 @@ class PredictionsController extends Controller
 
         $result = $prediction->firstOrCreate($inputValues);   
 
-        Log::info('Successfully created new prediction with id:' .$result->id);
-        return response()->json($result, 204);
+        Log::info('Successfully created new prediction', ['id' => $result->id]);
+        return response()->json(null, 204);
     }
 
     public function update(Request $request, Predictions $prediction)
     {
-        $predictionServiceCustomValidation = $this->getPredictionService();
+        $predictionServiceCustomValidation = $this->getValidationService();
         $updatedValues                     = $request->all();
 
         $validator = $predictionServiceCustomValidation
                 ->getUpdateValidation($updatedValues);
 
         if ($validator->fails()) {
-            Log::error('Failed to update prediction with id:'.$prediction->id);
+            Log::error('Failed to update prediction with id', ['id' => $prediction->id]);
             return response()->json(null, 400);
         }
         $result = $prediction->update($updatedValues);
-        Log::info('Successfully updated prediction with id:'.$prediction->id);
-        return response()->json($result, 204);
+        Log::info('Successfully updated prediction', ['id' => $prediction->id]);
+        return response()->json(null, 204);
     }
 
     public function delete(Predictions $prediction)
     {
         $prediction->delete();
-        Log::alert('Successfully deleted prediction with id:' .$prediction->id);
+        Log::alert('Successfully deleted prediction', ['id' => $prediction->id]);
         return response()->json(null, 204);
     }
 
-    private function getPredictionService(): PredictionServiceValidation
+    private function getValidationService(): PredictionServiceValidation
     {
         return new PredictionServiceValidation(
             new CustomValidation(),

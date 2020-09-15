@@ -23,7 +23,8 @@ class PredictionServiceValidation {
         $contains = false;
         
         if ($this->customValidation->getCorrectScore() === $marketType) {
-            $contains = Str::contains($prediction, [':']);
+            preg_match('/([0-9]+)\:([0-9]+)/', $prediction, $matchArray);
+            $contains = !empty($matchArray);
         } elseif ($this->customValidation->getHomeDrawAway() === $marketType) {
             $contains = in_array(Str::upper($prediction), $this->customValidation->getPredictionTypes());
         }
@@ -44,7 +45,7 @@ class PredictionServiceValidation {
                 'required',
                 Rule::in($this->customValidation->getMarketTypes())
             ],
-            'prediction'    => ['required','max:3'],
+            'prediction'    => ['required'],
             'status'        => [
                 'nullable',
                 Rule::in($this->customValidation->getStatusTypes())
