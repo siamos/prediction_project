@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Predictions;
 use App\Constants\CustomValidation;
 use Illuminate\Http\Request;
-use App\Providers\CustomValidationService\PredictionServiceValidation;
+use App\Providers\Factories\PredictionFactoryValidation;
+use App\Http\Requests\PredictionStoreValidationRequest;
+use App\Http\Requests\PredictionUpdateValidationRequest;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 
@@ -22,45 +24,21 @@ class PredictionsController extends Controller
         return $prediction;
     }
 
-    public function store(Request $request, Predictions $prediction)
+    public function store(PredictionStoreValidationRequest $request, Predictions $prediction)
     {
-        $predictionServiceCustomValidation = $this->getValidationService();
-        $inputValues                       = $request->all();
+        $inputValues        = $request->all();
+        $validatePrediction = $this->getValidationPrediction($inputValues);
 
-        $validator = $predictionServiceCustomValidation
-                ->getInputValidation($inputValues);
-        
-        $predictionCustomValidation = $predictionServiceCustomValidation
-                ->validatePrediction(
-                    $inputValues['prediction'],
-                    $inputValues['market_type']
-                );
-
-        if ($validator->fails() || !$predictionCustomValidation) {
-            Log::error('Failed to created new prediction');
-            return response()->json(null, 400);
-        }
-
-        $result = $prediction->firstOrCreate($inputValues);   
-
-        Log::info('Successfully created new prediction', ['id' => $result->id]);
-        return response()->json(null, 204);
+        return (!$validatePrediction)
+                ? $this->failedStoreResponse()
+                : $this->succeedStoreResponse($prediction, $inputValues);
     }
 
-    public function update(Request $request, Predictions $prediction)
+    public function update(PredictionUpdateValidationRequest $request, Predictions $prediction)
     {
-        $predictionServiceCustomValidation = $this->getValidationService();
-        $updatedValues                     = $request->all();
-
-        $validator = $predictionServiceCustomValidation
-                ->getUpdateValidation($updatedValues);
-
-        if ($validator->fails()) {
-            Log::error('Failed to update prediction with id', ['id' => $prediction->id]);
-            return response()->json(null, 400);
-        }
-        $result = $prediction->update($updatedValues);
+        $result = $prediction->update($request->all());
         Log::info('Successfully updated prediction', ['id' => $prediction->id]);
+
         return response()->json(null, 204);
     }
 
@@ -71,12 +49,26 @@ class PredictionsController extends Controller
         return response()->json(null, 204);
     }
 
-    private function getValidationService(): PredictionServiceValidation
+    private function getValidationPrediction(array $inputValues): bool
     {
-        return new PredictionServiceValidation(
-            new CustomValidation(),
-            new Validator()
-        );
+        $validationFactory  = new PredictionFactoryValidation(new CustomValidation());
+        $validatonType      = $validationFactory->generateValidationType($inputValues['market_type']);
+
+        return $validatonType->getPredictionValidation($inputValues['prediction']);
+    }
+
+    private function failedStoreResponse()
+    {
+        Log::error('Failed to created new prediction');
+        return response()->json(null, 400);
+    }
+
+    private function succeedStoreResponse(Predictions $prediction, array $inputValues)
+    {
+        $result = $prediction->firstOrCreate($inputValues);   
+        Log::info('Successfully created new prediction', ['id' => $result->id]);
+
+        return response()->json(null, 204);
     }
 
 }
